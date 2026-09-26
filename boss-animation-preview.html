@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>M-01 ボス動作プレビュー</title>
+<style>*{box-sizing:border-box}body{margin:0;background:#121b27;color:#f4ecd9;font:15px system-ui,sans-serif}main{max-width:1100px;margin:auto;padding:24px}h1{font-size:24px;margin:0 0 8px}p{color:#b9c8d5;line-height:1.8}canvas{width:100%;background:#202c3c;display:block;border:1px solid #526376;border-radius:12px}nav{display:flex;flex-wrap:wrap;gap:9px;margin:18px 0}button,a{font:inherit;border:1px solid #697f93;border-radius:8px;padding:10px 15px;background:#283c50;color:#fff1d4;cursor:pointer;text-decoration:none}button:hover{background:#415d75}#status{min-height:24px;color:#ffd57f}small{color:#adbdcc}</style>
+<main><h1>M-01 ネコ型ロボ ─ 動作プレビュー</h1><p>本体16コマ＋腕8コマ。ボタンで破損・ひび・出撃を確認できます。ここではプレイヤーはダメージを受けません。</p>
+<canvas id="preview" width="960" height="540" aria-label="ボスのアニメーション確認画面"></canvas>
+<nav><button id="restart">初期状態に戻す</button><button id="front">手前の腕を破壊</button><button id="rear">奥の腕を破壊</button><button id="crack">コックピットにひび</button><button id="hatch">ハッチから出撃</button><button id="freeze">一時停止</button><a href="index.html">ゲームで遊ぶ</a></nav>
+<div id="status" role="status">通常の攻撃サイクルを再生中</div><p><small>腕が壊れると目のビームが解禁。ガラス損傷後は司令官が速く動きます。ハッチは開く→出撃→全機が降りる→閉じる、の順で動きます。</small></p></main>
+<script src="assets/boss-atlas-data.js"></script>
+<script>
+const canvas=document.querySelector('#preview'),ctx=canvas.getContext('2d'),GROUND=440,WORLD=8800;
+let stage=4,state='playing',platforms=[],player={x:7920,y:402,w:38,h:38,inv:999,hp:3},checkpoint=7890,midpointUnlocked=false,shots=[];
+const art={},noop=()=>{};let frozen=false,last=0;
+const resize=noop,playSE=noop,stopSE=noop,syncMusic=noop,clearKeys=noop,hit=noop;
+function show(){document.querySelector('#status').textContent='撃破';}
+function burst(){}
+function rect(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;}
+</script><script src="boss.js"></script><script>
+function restart(){state='playing';platforms=[];shots=[];initBoss();boss.active=true;frozen=false;document.querySelector('#freeze').textContent='一時停止';document.querySelector('#status').textContent='通常の攻撃サイクルを再生中';}
+document.querySelector('#restart').onclick=restart;
+document.querySelector('#front').onclick=()=>{while(boss.arms[0].hp>0)damageBossArm(0);document.querySelector('#status').textContent='手前の腕が破損。目のビームへ切り替えます。';};
+document.querySelector('#rear').onclick=()=>{while(boss.arms[1].hp>0)damageBossArm(1);document.querySelector('#status').textContent='奥の腕が破損。残った武器で攻撃します。';};
+document.querySelector('#crack').onclick=()=>{boss.hp=12;document.querySelector('#status').textContent='コックピットにひび。司令官の動きが速くなりました。';};
+document.querySelector('#hatch').onclick=()=>{boss.bots=[];enterBossPhase('hatchOpen');document.querySelector('#status').textContent='ハッチを開き、3体の機械ネズミがスロープを降ります。';};
+document.querySelector('#freeze').onclick=e=>{frozen=!frozen;e.target.textContent=frozen?'再生する':'一時停止';};
+function frame(now){const dt=Math.min(.04,(now-last)/1000||0);last=now;if(!frozen)stepBoss(dt);ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,960,540);
+ctx.fillStyle='#172433';ctx.fillRect(0,0,960,540);ctx.strokeStyle='#334452';ctx.lineWidth=1;for(let x=0;x<960;x+=60){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,440);ctx.stroke();}
+ctx.fillStyle='#465360';ctx.fillRect(0,GROUND,960,100);ctx.fillStyle='#d2ae67';ctx.fillRect(0,GROUND,960,3);
+ctx.save();ctx.translate(-7840,0);for(const p of platforms){ctx.fillStyle='#798690';ctx.fillRect(p.x,p.y,p.w,10);ctx.fillStyle='#d0b271';ctx.fillRect(p.x,p.y,p.w,3);}drawBoss();ctx.restore();drawBossHUD(960);requestAnimationFrame(frame);}
+Promise.all(Object.entries({bossBody:'boss-body-atlas.png',bossArms:'boss-arms-atlas.png',robotMouse:'robot-mouse.png'}).map(([k,url])=>new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>{art[k]=im;resolve();};im.onerror=reject;im.src='assets/'+url;}))).then(()=>{restart();requestAnimationFrame(frame);}).catch(()=>document.querySelector('#status').textContent='素材を読み込めません。assetsフォルダーを確認してください。');
+</script></html>
